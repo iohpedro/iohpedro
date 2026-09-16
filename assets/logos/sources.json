@@ -1,0 +1,191 @@
+[
+  {
+    "brand": "FIAP Pós Tech",
+    "asset": "fiap.png",
+    "source_url": "https://www.fiap.com.br/",
+    "source_sha256": "ebdf604775a742c12cb5064871bd457eeede3260d5aeea18e63bad39e2a3a430",
+    "output_sha256": "96188c869738ebfb62e94f5b3c1c11bf974af7599619a1f784ecccc24a2ead0a",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card. Official inline SVG currentColor resolved to FIAP pink (#ed145b)."
+  },
+  {
+    "brand": "B3",
+    "asset": "b3.png",
+    "source_url": "https://logodownload.org/wp-content/uploads/2019/08/b3-logo.png",
+    "source_sha256": "dc63dab6247a7d6f0179478d512c8a3589b5edac44bf9a1cd351381d064f9843",
+    "output_sha256": "041b975f8035540267c754efd461cd83da8b5df1461ef344f1827cac4c7f1fc7",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Banco BV",
+    "asset": "bv.png",
+    "source_url": "https://logodownload.org/wp-content/uploads/2020/07/banco-bv-logo.png",
+    "source_sha256": "8482f493414c7d23e1fa2e13bd6e859514d106046aa8f87cab522af7a96be479",
+    "output_sha256": "be8e20847e576bb5537fc3357ef92062c7cd091a8c74e9da876550e5e2e25118",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Porto Seguro",
+    "asset": "porto.png",
+    "source_url": "https://portoseguro.cdn.prismic.io/portoseguro/aScbuWGnmrmGqW3T_porto-logo.svg?fit=max&w=256",
+    "source_sha256": "fc9beb5f54a63d126c0a6bbe3935ef503547cf99f6a6429c5f6d5a72c68571a7",
+    "output_sha256": "857ea8b6aae197fc6e55ba14d0cb52fa5056bc39b2b807d119b24175deaa075f",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "PwC",
+    "asset": "pwc.png",
+    "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/PwC_Company_Logo.svg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original",
+    "source_sha256": "9759f9c86121cde01dade72f0495c9ec3024e2009fb8176a9286284b1325a897",
+    "output_sha256": "02c518b2fef01269084a92a8168890da4b9694a33ed0d66e8b0d0335d9efed1a",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Governo de Goiás",
+    "asset": "goias.png",
+    "source_url": "https://goias.gov.br/wp-content/uploads/logos/PORTAL_GOIAS_DESKTOP.png",
+    "source_sha256": "48befaf2af07086f203e1a2bab2d5611c3617e54f0b725cc543ba824421ba270",
+    "output_sha256": "a09f5a3eec51abf53067076008e4f94a9b57b891c58e8f30bafcd55a64d02303",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "HSBC",
+    "asset": "hsbc.png",
+    "source_url": "https://www.hsbc.com/-/files/hsbc/header/hsbc-logo-200x25.svg",
+    "source_sha256": "c54ff461737c5f44be46d9d1f9e4b3a64db412af82d795736f78b9bc3298ca2c",
+    "output_sha256": "1cf99629b3f320061e7974de64ed4d4266f28c8102ac630f106351eda8c81d17",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Bradesco",
+    "asset": "bradesco.png",
+    "source_url": "https://assets.bradesco/content/dam/portal-bradesco/assets/classic/home/images/logo-mobile.png",
+    "source_sha256": "6b933e03e777db7ab9c63b0e3e5878a6b2fcda57cf676b32e71030e2c04cb411",
+    "output_sha256": "6d633fb3733c029a066d128532fb378ed5506325ddf4f0e900491886a007763e",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card. Original white logo silhouette rendered in Bradesco red (#cc092f)."
+  },
+  {
+    "brand": "Vórtx",
+    "asset": "vortx.png",
+    "source_url": "https://www.vortx.com.br/images/logo-vortx--color.svg",
+    "source_sha256": "1630e9ba330759487bee485985a766fcce906f16ae13f0581db1373a79c4bcbb",
+    "output_sha256": "7f607917d468d1e3a5685e093bbf79bd6060f7e9bcdf13cb616d97e5999aa4bb",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Itaú",
+    "asset": "itau.png",
+    "source_url": "https://logodownload.org/wp-content/uploads/2014/05/itau-logo-0.png",
+    "source_sha256": "a1027eadf8fe1965006fcacf9299729ed8f72a5559cd0a7c9b8c50f426b03654",
+    "output_sha256": "b3a87174183c1545c8ac581cc0e18f5691a08f380064a32d223011af62ea2577",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Whitespace cropped; proportions preserved; optical centering on a white rounded card."
+  },
+  {
+    "brand": "Grupo Boticário",
+    "asset": "boticario.png",
+    "source_url": "https://umabelezadefuturo.grupoboticario.com.br/hero-banner.png",
+    "source_sha256": "95ec933a4a328d0c0d2bfb6e29e22d1877462b6017f5ea996a1068df83d2d4b4",
+    "output_sha256": "24e3203b478dd8a5e84ebbf98710585aa72e0dca83a2c8bd8443684d55346fac",
+    "format": "PNG RGBA",
+    "pixels": [
+      384,
+      192
+    ],
+    "display": [
+      128,
+      64
+    ],
+    "treatment": "Adapted from the high-resolution official brand banner: original letter shapes and colored emblem extracted, navy backdrop removed, cream lettering rendered in navy, stacked arrangement based on the official careers-page lockup; centered on the standard white card. Not a newly invented logo.",
+    "source_page": "https://umabelezadefuturo.grupoboticario.com.br/",
+    "reference_lockup": "https://attachments.gupy.io/production/companies/295/career/210/images/2025-05-20_20-25_companyLogoUrl.png"
+  }
+]

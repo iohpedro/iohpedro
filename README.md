@@ -77,12 +77,12 @@ RAG · Context Engineering · MCP · Guardrails · Human-in-the-loop · MLOps / 
 **Ensino, formação corporativa e mentoria**
 
 <p>
-  <img src="./assets/badges/fiap.png" width="124" height="40" alt="FIAP Pós Tech">
-  <img src="./assets/badges/b3.png" width="51" height="40" alt="B3">
-  <img src="./assets/badges/bv.png" width="95" height="40" alt="Banco BV">
-  <img src="./assets/badges/porto.png" width="117" height="40" alt="Porto Seguro">
-  <img src="./assets/badges/pwc.png" width="63" height="40" alt="PwC">
-  <img src="./assets/badges/goias.png" width="146" height="40" alt="Governo de Goiás">
+  <img src="./assets/logos/fiap.png" width="128" height="64" alt="FIAP Pós Tech">
+  <img src="./assets/logos/b3.png" width="128" height="64" alt="B3">
+  <img src="./assets/logos/bv.png" width="128" height="64" alt="Banco BV">
+  <img src="./assets/logos/porto.png" width="128" height="64" alt="Porto Seguro">
+  <img src="./assets/logos/pwc.png" width="128" height="64" alt="PwC">
+  <img src="./assets/logos/goias.png" width="128" height="64" alt="Governo de Goiás">
 </p>
 
 Levo esse repertório para públicos diferentes: desenvolvedores, profissionais de dados, equipes corporativas e lideranças. Em aulas e mentorias, conecto **fundamentos, arquitetura, prática e avaliação**, com materiais que continuam úteis depois do encontro.
@@ -90,11 +90,11 @@ Levo esse repertório para públicos diferentes: desenvolvedores, profissionais 
 **Minha base em dados e negócios**
 
 <p>
-  <img src="./assets/badges/hsbc.png" width="99" height="40" alt="HSBC">
-  <img src="./assets/badges/bradesco.png" width="94" height="40" alt="Bradesco">
-  <img src="./assets/badges/vortx.png" width="69" height="40" alt="Vórtx">
-  <img src="./assets/badges/itau.png" width="58" height="40" alt="Itaú">
-  <img src="./assets/badges/boticario.png" width="133" height="40" alt="Grupo Boticário">
+  <img src="./assets/logos/hsbc.png" width="128" height="64" alt="HSBC">
+  <img src="./assets/logos/bradesco.png" width="128" height="64" alt="Bradesco">
+  <img src="./assets/logos/vortx.png" width="128" height="64" alt="Vórtx">
+  <img src="./assets/logos/itau.png" width="128" height="64" alt="Itaú">
+  <img src="./assets/logos/boticario.png" width="128" height="64" alt="Grupo Boticário">
 </p>
 
 Essa trajetória passa por analytics, automação, crédito, cobrança, fundos, mercado de capitais e inteligência competitiva. É a base que levo para a engenharia e o ensino: **tecnologia conectada a operação, risco, valor e decisão**.
