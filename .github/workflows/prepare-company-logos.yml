@@ -10,35 +10,97 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Inspect public brand asset sources
+      - run: python -m pip install pillow cairosvg beautifulsoup4 requests
+      - name: Collect original brand assets
         shell: python
         run: |
-          import concurrent.futures, html, json, re, urllib.request
-          sites = {
-            'fiap': 'https://www.fiap.com.br/',
-            'b3': 'https://www.b3.com.br/pt_br/',
-            'bv': 'https://www.bv.com.br/',
-            'porto': 'https://www.portoseguro.com.br/',
-            'pwc': 'https://www.pwc.com.br/',
-            'goias': 'https://goias.gov.br/',
-            'hsbc': 'https://www.hsbc.com/',
-            'bradesco': 'https://banco.bradesco/html/classic/index.shtm',
-            'vortx': 'https://www.vortx.com.br/',
-            'itau': 'https://www.itau.com.br/',
-            'boticario': 'https://www.grupoboticario.com.br/',
+          import concurrent.futures, io, json, re
+          from pathlib import Path
+          from urllib.parse import urljoin
+          import requests, cairosvg
+          from bs4 import BeautifulSoup
+          from PIL import Image, ImageDraw, ImageFont, ImageChops
+          out = Path('collected'); out.mkdir(exist_ok=True)
+          manifest = {}
+          sources = {
+            'b3': 'https://cdn.brandfetch.io/idi_4rAsGs/theme/dark/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1667733902519',
+            'bv': 'https://cdn.brandfetch.io/id0hetbXa0/theme/dark/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1773254481241',
+            'porto': 'https://portoseguro.cdn.prismic.io/portoseguro/aScbuWGnmrmGqW3T_porto-logo.svg?fit=max&w=256',
+            'goias': 'https://goias.gov.br/wp-content/uploads/logos/PORTAL_GOIAS_DESKTOP.png',
+            'hsbc': 'https://www.hsbc.com/-/files/hsbc/header/hsbc-logo-200x25.svg',
+            'bradesco': 'https://assets.bradesco/content/dam/portal-bradesco/assets/classic/home/images/logo-mobile.png',
+            'vortx': 'https://www.vortx.com.br/images/logo-vortx--color.svg',
+            'boticario': 'https://cdn.brandfetch.io/idBBxxoMlE/theme/dark/logo.svg?c=1bxid64Mup7aczewSAYMX&t=1781709863190',
           }
-          def inspect(item):
-            name, url = item
+          def get(url):
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=25)
+            r.raise_for_status()
+            if len(r.content) > 12_000_000: raise ValueError('Asset too large')
+            return r
+          def save(name, url, data=None):
             try:
-              request = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-              with urllib.request.urlopen(request, timeout=30) as response:
-                text = response.read(8_000_000).decode('utf-8', 'replace')
-              candidates = re.findall(r'(?:src|href|data-src)=[\"\']([^\"\']+)[\"\']', text)
-              images = [html.unescape(u) for u in candidates if re.search(r'(logo|marca|brand|brasao)', u, re.I) and re.search(r'\.(svg|png|webp|jpg|jpeg)(\?|$)', u, re.I)]
-              inline = re.findall(r'<svg\b[\s\S]*?</svg>', text, re.I)
-              return name, {'url': url, 'images': list(dict.fromkeys(images))[:25], 'inline_logos': [s[:20000] for s in inline if re.search(r'(logo|marca|brand)', s, re.I)][:3]}
-            except Exception as error:
-              return name, {'url': url, 'error': str(error)}
+              if data is None: data = get(url).content
+              svg = b'<svg' in data[:2000]
+              ext = '.svg' if svg else '.png'
+              (out / (name + ext)).write_bytes(data)
+              if svg:
+                data = data.replace(b'currentColor', b'#ed145b') if name == 'fiap' else data
+                im = Image.open(io.BytesIO(cairosvg.svg2png(bytestring=data, output_width=1000))).convert('RGBA')
+              else: im = Image.open(io.BytesIO(data)).convert('RGBA')
+              white = Image.new('RGBA', im.size, 'white'); white.alpha_composite(im)
+              bbox = ImageChops.difference(white.convert('RGB'), Image.new('RGB', im.size, 'white')).getbbox()
+              if bbox: im = im.crop(bbox)
+              im.thumbnail((360, 160), Image.Resampling.LANCZOS)
+              card = Image.new('RGBA', (400, 200), (0,0,0,0))
+              ImageDraw.Draw(card).rounded_rectangle((1,1,398,198), radius=20, fill='white', outline='#d0d7de', width=2)
+              card.alpha_composite(im, ((400-im.width)//2, (200-im.height)//2))
+              card.save(out / (name + '-preview.png'))
+              manifest[name] = {'url': url, 'file': name+ext, 'source_bytes': len(data), 'preview': name+'-preview.png'}
+              print('SAVED', name, url)
+            except Exception as e:
+              manifest[name] = {'url': url, 'error': str(e)}
+              print('FAILED', name, str(e))
           with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-            for name, result in pool.map(inspect, sites.items()):
-              print('\nBRAND_SOURCE ' + name + '\n' + json.dumps(result, ensure_ascii=False))
+            list(pool.map(lambda item: save(*item), sources.items()))
+          try:
+            page = get('https://www.fiap.com.br/').text
+            soup = BeautifulSoup(page, 'html.parser')
+            svg = next(s for s in soup.find_all('svg') if s.get('viewbox') == '0 0 126 36' or s.get('viewBox') == '0 0 126 36')
+            text = str(svg).replace('viewbox=', 'viewBox=').replace('currentColor', '#ed145b')
+            save('fiap', 'https://www.fiap.com.br/', text.encode())
+          except Exception as e: print('FIAP_ERROR', str(e))
+          try:
+            url = 'https://logodownload.org/itau-logo/'
+            soup = BeautifulSoup(get(url).text, 'html.parser')
+            urls = [urljoin(url, x.get('href', '')) for x in soup.find_all('a')]
+            urls += [urljoin(url, x.get('src', '')) for x in soup.find_all('img')]
+            candidates = list(dict.fromkeys(u for u in urls if 'itau-logo' in u and re.search(r'\.(svg|png)(\?|$)', u)))
+            print('ITAU_CANDIDATES', json.dumps(candidates))
+            if candidates: save('itau', candidates[0])
+          except Exception as e: print('ITAU_ERROR', str(e))
+          try:
+            url = 'https://www.pwc.com.br/'
+            soup = BeautifulSoup(get(url).text, 'html.parser')
+            for tag in soup.find_all(['img', 'object', 'use', 'svg']):
+              text = str(tag)
+              if 'logo' in text.lower() or (tag.name == 'img' and 'pwc' in str(tag.get('alt', '')).lower()):
+                print('PWC_CANDIDATE', text[:18000])
+            for name, selector in [('pwc', 'svg')]:
+              tags = [s for s in soup.find_all(selector) if 'pwc' in str(s).lower() and 'path' in str(s)]
+              if tags: save(name, url, str(tags[0]).replace('viewbox=', 'viewBox=').encode())
+          except Exception as e: print('PWC_ERROR', str(e))
+          (out/'manifest.json').write_text(json.dumps(manifest, indent=2, ensure_ascii=False))
+          files = sorted(out.glob('*-preview.png'))
+          montage = Image.new('RGB', (1200, ((len(files)+2)//3)*240), '#0d1117')
+          draw = ImageDraw.Draw(montage)
+          for i, f in enumerate(files):
+            im = Image.open(f); x=(i%3)*400; y=(i//3)*240
+            draw.text((x+15,y+10), f.stem, fill='white')
+            montage.paste(im, (x,y+35), im)
+          montage.save(out/'preview.png')
+          print('MANIFEST', json.dumps(manifest, ensure_ascii=False))
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-company-logos
+          path: collected/
+          retention-days: 1
