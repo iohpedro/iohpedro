@@ -1,43 +1,111 @@
-name: Prepare company logo assets
+name: Publish reviewed company logos
 on:
   push:
     paths:
       - .github/workflows/prepare-company-logos.yml
 permissions:
-  contents: read
+  contents: write
+  actions: read
 jobs:
-  inspect:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
-      - name: Fetch high-resolution brand references
-        shell: python
-        run: |
-          import concurrent.futures, io, json, urllib.request, zipfile
-          from pathlib import Path
-          out=Path('references');out.mkdir()
-          urls={
-            'official-hero.png':'https://umabelezadefuturo.grupoboticario.com.br/hero-banner.png',
-            'official-careers-banner.png':'https://attachments.gupy.io/production/companies/295/career/210/images/2026-06-19_20-34_bannerUrl.png',
-            'vector-reference.zip':'https://vectorseek.com/wp-content/uploads/2023/11/Grupo-Boticario-Logo-Vector.zip',
-          }
-          def get(item):
-            name,url=item
-            try:
-              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
-              with urllib.request.urlopen(req,timeout=25) as r: data=r.read(15_000_000)
-              (out/name).write_bytes(data)
-              if name.endswith('.zip'):
-                with zipfile.ZipFile(io.BytesIO(data)) as archive:
-                  for info in archive.infolist():
-                    if info.file_size<8_000_000 and info.filename.lower().endswith(('.svg','.png')):
-                      (out/Path(info.filename).name).write_bytes(archive.read(info))
-              print('SUCCESS',name,len(data))
-            except Exception as e: print('FAILED',name,str(e))
-          with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool: list(pool.map(get,urls.items()))
-          (out/'sources.json').write_text(json.dumps(urls,indent=2))
-      - uses: actions/upload-artifact@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: python -m pip install pillow numpy
+      - uses: actions/download-artifact@v4
+        with:
+          name: validated-company-logo-update
+          run-id: 35049793340
+          github-token: ${{ github.token }}
+          path: /tmp/logo-bundle
+      - uses: actions/download-artifact@v4
         with:
           name: boticario-sharp-references
-          path: references/
+          run-id: 35049887991
+          github-token: ${{ github.token }}
+          path: /tmp/logo-references
+      - name: Finalize the reviewed images and preserve all unrelated content
+        shell: python
+        run: |
+          from pathlib import Path
+          import hashlib, json, re, shutil
+          import numpy as np
+          from PIL import Image, ImageDraw
+          bundle=Path('/tmp/logo-bundle'); assets=bundle/'assets/logos'
+          source=Path('/tmp/logo-references/official-hero.png')
+          assert hashlib.sha256(source.read_bytes()).hexdigest()=='95ec933a4a328d0c0d2bfb6e29e22d1877462b6017f5ea996a1068df83d2d4b4'
+          image=Image.open(source).convert('RGBA'); a=np.asarray(image).astype(float)
+          bg=np.array([8.,29.,54.]); fg=np.array([240.,236.,231.])
+          alpha=np.clip(((a[:,:,:3]-bg)@(fg-bg))/np.sum((fg-bg)**2),0,1); alpha[:,1740:]=0
+          letters=Image.new('RGBA',image.size,(8,29,54,0)); letters.putalpha(Image.fromarray(np.rint(alpha*255).astype('uint8')))
+          group=letters.crop((230,380,830,625)); group=group.crop(group.getbbox())
+          boticario=letters.crop((835,380,1700,625)); boticario=boticario.crop(boticario.getbbox())
+          emblem=image.crop((1740,0,2220,892)); e=np.asarray(emblem).copy()
+          distance=np.max(np.abs(e[:,:,:3].astype(float)-bg),axis=2)
+          e[:,:,3]=np.where(distance>2,255,0).astype('uint8')
+          emblem=Image.fromarray(e); emblem=emblem.crop(emblem.getbbox())
+          height=group.height+30+boticario.height; eh=round(height*0.94); ew=round(emblem.width*eh/emblem.height)
+          emblem=emblem.resize((ew,eh),Image.Resampling.LANCZOS)
+          lockup=Image.new('RGBA',(boticario.width+42+emblem.width,height),(0,0,0,0))
+          lockup.alpha_composite(group,(boticario.width-group.width,0))
+          lockup.alpha_composite(boticario,(0,group.height+30))
+          lockup.alpha_composite(emblem,(boticario.width+42,(height-emblem.height)//2))
+          scale=min(108*6/lockup.width,44*6/lockup.height)
+          lockup=lockup.resize((round(lockup.width*scale),round(lockup.height*scale)),Image.Resampling.LANCZOS)
+          card=Image.new('RGBA',(768,384),(0,0,0,0))
+          ImageDraw.Draw(card).rounded_rectangle((3,3,764,380),radius=54,fill='white',outline='#d8dee4',width=6)
+          card.alpha_composite(lockup,((768-lockup.width)//2,(384-lockup.height)//2))
+          card.resize((384,192),Image.Resampling.LANCZOS).save(assets/'boticario.png',optimize=True)
+          assert hashlib.sha256((assets/'boticario.png').read_bytes()).hexdigest()=='24e3203b478dd8a5e84ebbf98710585aa72e0dca83a2c8bd8443684d55346fac','Rendered image differs from the visually reviewed asset'
+          records=json.loads((assets/'sources.json').read_text())
+          record=next(m for m in records if m['asset']=='boticario.png')
+          record['source_url']='https://umabelezadefuturo.grupoboticario.com.br/hero-banner.png'
+          record['source_page']='https://umabelezadefuturo.grupoboticario.com.br/'
+          record['reference_lockup']='https://attachments.gupy.io/production/companies/295/career/210/images/2025-05-20_20-25_companyLogoUrl.png'
+          record['source_sha256']=hashlib.sha256(source.read_bytes()).hexdigest()
+          record['output_sha256']=hashlib.sha256((assets/'boticario.png').read_bytes()).hexdigest()
+          record['treatment']='Adapted from the high-resolution official brand banner: original letter shapes and colored emblem extracted, navy backdrop removed, cream lettering rendered in navy, stacked arrangement based on the official careers-page lockup; centered on the standard white card. Not a newly invented logo.'
+          (assets/'sources.json').write_text(json.dumps(records,ensure_ascii=False,indent=2)+'\n')
+          notes=(assets/'SOURCES.md').read_text()
+          notes=notes.replace('**Grupo Boticário**: '+record['reference_lockup'],'**Grupo Boticário**: '+record['source_url'])
+          notes += '\n### Adaptação do Grupo Boticário\n\nPara evitar ampliar o avatar de baixa resolução da página de carreiras, as formas originais das letras e o símbolo colorido foram extraídos do banner oficial em alta resolução. O fundo azul-marinho foi removido, as letras foram aplicadas em azul-marinho e a composição em duas linhas foi reconstruída com base no lockup publicado pela empresa em sua página oficial na Gupy. Não foi utilizada uma fonte genérica para substituir o desenho das letras.\n'
+          (assets/'SOURCES.md').write_text(notes)
+          names=['fiap','b3','bv','porto','pwc','goias','hsbc','bradesco','vortx','itau','boticario']
+          original=Path('README.md').read_text(); updated=(bundle/'README.md').read_text()
+          pattern=r'<img src="\./assets/(?:badges|logos)/(?:'+'|'.join(names)+r')\.png"[^>]*>'
+          assert re.sub(pattern,'<company-logo>',original)==re.sub(pattern,'<company-logo>',updated),'Unrelated README changes detected'
+          assert len(re.findall(r'<img src="\./assets/logos/',updated))==11
+          for m in records:
+            path=assets/m['asset']; im=Image.open(path)
+            assert im.size==(384,192) and im.mode=='RGBA'
+            assert hashlib.sha256(path.read_bytes()).hexdigest()==m['output_sha256'],m['asset']
+          for theme in ['dark','light']:
+            preview=Image.open(bundle/f'preview-{theme}.png').convert('RGBA')
+            background='#0d1117' if theme=='dark' else '#ffffff'
+            ImageDraw.Draw(preview).rectangle((1120,388,1378,518),fill=background)
+            logo=Image.open(assets/'boticario.png').resize((256,128),Image.Resampling.LANCZOS)
+            preview.alpha_composite(logo,(1120,388)); preview.save(bundle/f'preview-{theme}.png')
+          target=Path('assets/logos'); target.mkdir(parents=True,exist_ok=True)
+          for path in assets.iterdir():
+            assert path.suffix in ['.png','.json','.md']
+            shutil.copy2(path,target/path.name)
+          Path('README.md').write_text(updated)
+          print('PASS: 11 visually reviewed images, all hashes valid; README copy, stack and photos preserved.')
+      - name: Commit only the requested profile changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- README.md assets/logos
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m 'style: replace generic company badges with original brand logos'
+          git push origin HEAD:main
+          git rev-parse HEAD > /tmp/logo-bundle/published-commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: published-company-logo-update
+          path: /tmp/logo-bundle/
           retention-days: 1
