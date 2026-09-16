@@ -7,110 +7,91 @@ permissions:
   contents: read
   actions: read
 jobs:
-  inspect:
+  prepare:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: python -m pip install pillow cairosvg beautifulsoup4 requests
+      - uses: actions/checkout@v4
+      - run: python -m pip install pillow cairosvg requests
       - uses: actions/download-artifact@v4
         with:
-          name: original-company-logos
-          run-id: 35049452342
+          name: company-logo-sources-complete
+          run-id: 35049683598
           github-token: ${{ github.token }}
-          path: collected
-      - name: Complete source collection
+          path: /tmp/logo-sources
+      - name: Render standardized brand cards and stage README
         shell: python
         run: |
-          import concurrent.futures, hashlib, io, json, re
+          import hashlib, io, json, re
           from pathlib import Path
-          from urllib.parse import urljoin, quote
           import requests, cairosvg
-          from bs4 import BeautifulSoup
-          from PIL import Image, ImageDraw, ImageChops
-          out = Path('collected')
-          manifest = json.loads((out/'manifest.json').read_text())
-          for name in ['b3', 'bv', 'boticario']:
-            (out/(name+'.png')).unlink(missing_ok=True)
-            manifest.pop(name, None)
-          def get(url):
-            r = requests.get(url, headers={'User-Agent':'Mozilla/5.0'}, timeout=25)
-            r.raise_for_status()
-            if len(r.content)>12_000_000: raise ValueError('Too large')
-            return r
-          def save(name, url, data=None):
-            if data is None: data=get(url).content
-            svg=b'<svg' in data[:2000]
-            if svg:
-              im=Image.open(io.BytesIO(cairosvg.svg2png(bytestring=data, output_width=1200))).convert('RGBA')
+          from PIL import Image, ImageDraw, ImageChops, ImageFont
+          src=Path('/tmp/logo-sources'); bundle=Path('/tmp/logo-bundle'); assets=bundle/'assets/logos'; assets.mkdir(parents=True,exist_ok=True)
+          manifest=json.loads((src/'manifest.json').read_text())
+          url='https://attachments.gupy.io/production/companies/295/career/210/images/2025-05-20_20-25_companyLogoUrl.png'
+          r=requests.get(url,timeout=30); r.raise_for_status(); im=Image.open(io.BytesIO(r.content)); im.verify()
+          (src/'boticario.png').write_bytes(r.content)
+          manifest['boticario']={'url':url,'file':'boticario.png','source_bytes':len(r.content),'source_page':'https://grupoboticario.gupy.io/'}
+          (bundle/'boticario-original.png').write_bytes(r.content)
+          names=['fiap','b3','bv','porto','pwc','goias','hsbc','bradesco','vortx','itau','boticario']
+          titles=['FIAP Pós Tech','B3','Banco BV','Porto Seguro','PwC','Governo de Goiás','HSBC','Bradesco','Vórtx','Itaú','Grupo Boticário']
+          boxes={'fiap':(104,34),'b3':(108,44),'bv':(76,46),'porto':(104,34),'pwc':(91,44),'goias':(108,48),'hsbc':(106,36),'bradesco':(108,32),'vortx':(108,34),'itau':(44,44),'boticario':(108,44)}
+          metadata=[]
+          for name,title in zip(names,titles):
+            record=manifest[name]; data=(src/record['file']).read_bytes()
+            if record['file'].endswith('.svg'):
+              im=Image.open(io.BytesIO(cairosvg.svg2png(bytestring=data,output_width=1600))).convert('RGBA')
             else: im=Image.open(io.BytesIO(data)).convert('RGBA')
-            ext='.svg' if svg else '.png'
-            (out/(name+ext)).write_bytes(data)
-            manifest[name]={'url':url,'file':name+ext,'source_bytes':len(data)}
             if name=='bradesco':
-              alpha=im.getchannel('A'); im=Image.new('RGBA', im.size, '#cc092f'); im.putalpha(alpha)
+              alpha=im.getchannel('A'); im=Image.new('RGBA',im.size,'#cc092f'); im.putalpha(alpha)
             white=Image.new('RGBA',im.size,'white'); white.alpha_composite(im)
-            bbox=ImageChops.difference(white.convert('RGB'),Image.new('RGB',im.size,'white')).getbbox()
-            if bbox: im=im.crop(bbox)
-            factor=min(350/im.width,145/im.height)
+            diff=ImageChops.difference(white.convert('RGB'),Image.new('RGB',im.size,'white'))
+            bbox=diff.getbbox(); assert bbox,name+' is blank'
+            im=im.crop(bbox)
+            size=boxes[name]; factor=min(size[0]*6/im.width,size[1]*6/im.height)
             im=im.resize((round(im.width*factor),round(im.height*factor)),Image.Resampling.LANCZOS)
-            card=Image.new('RGBA',(400,200),'white'); card.alpha_composite(im,((400-im.width)//2,(200-im.height)//2))
-            card.save(out/(name+'-preview.png'))
-            print('SAVED',name,url,im.size)
-          for name,url in [('b3','https://logodownload.org/b3-logo-brasil-bolsa-balcao/'),('bv','https://logodownload.org/banco-bv-logo/')]:
-            try:
-              soup=BeautifulSoup(get(url).text,'html.parser')
-              urls=[urljoin(url,t.get('href','')) for t in soup.find_all('a')]
-              urls += [urljoin(url,t.get('src','')) for t in soup.find_all('img')]
-              needle='banco-bv-logo' if name=='bv' else 'b3-logo'
-              candidates=list(dict.fromkeys(u for u in urls if needle in u and re.search(r'\.(svg|png)(\?|$)',u)))
-              print('CANDIDATES',name,json.dumps(candidates))
-              preferred=next((u for u in candidates if u.endswith('/'+needle+'.png')),candidates[0])
-              save(name,preferred)
-            except Exception as e: print('FAILED',name,str(e))
+            card=Image.new('RGBA',(128*6,64*6),(0,0,0,0)); draw=ImageDraw.Draw(card)
+            draw.rounded_rectangle((3,3,128*6-4,64*6-4),radius=9*6,fill='#ffffff',outline='#d8dee4',width=6)
+            card.alpha_composite(im,((card.width-im.width)//2,(card.height-im.height)//2))
+            card=card.resize((384,192),Image.Resampling.LANCZOS)
+            card.save(assets/(name+'.png'),optimize=True)
+            assert card.getbbox() and (assets/(name+'.png')).stat().st_size>500
+            entry={'brand':title,'asset':name+'.png','source_url':record['url'],'source_sha256':hashlib.sha256(data).hexdigest(),'output_sha256':hashlib.sha256((assets/(name+'.png')).read_bytes()).hexdigest(),'format':'PNG RGBA','pixels':[384,192],'display':[128,64],'treatment':'Whitespace cropped; proportions preserved; optical centering on a white rounded card.'}
+            if name=='bradesco': entry['treatment']+=' Original white logo silhouette rendered in Bradesco red (#cc092f).'
+            if name=='fiap': entry['treatment']+=' Official inline SVG currentColor resolved to FIAP pink (#ed145b).'
+            if name=='boticario': entry['source_page']=record['source_page']
+            metadata.append(entry)
+          original=Path('README.md').read_text(); updated=original
+          for name in names:
+            pattern=rf'<img src="\./assets/badges/{name}\.png" width="\d+" height="40" alt="([^"]+)">'
+            updated,count=re.subn(pattern,rf'<img src="./assets/logos/{name}.png" width="128" height="64" alt="\1">',updated)
+            assert count==1,(name,count)
+          def remove_company_tags(text):
+            return re.sub(r'<img src="\./assets/(?:badges|logos)/(?:'+ '|'.join(names)+r')\.png"[^>]*>','<company-logo>',text)
+          assert remove_company_tags(original)==remove_company_tags(updated),'Unrelated README change detected'
+          (bundle/'README.md').write_text(updated)
+          (assets/'sources.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n')
+          notes=['# Logos das empresas e instituições','','Os arquivos PNG desta pasta são usados na seção de experiência do perfil. Cada cartão tem 384 × 192 pixels e é exibido a 128 × 64 pixels. Os logos foram obtidos das fontes abaixo; não são textos genéricos nem marcas inventadas.','','Foram padronizados apenas enquadramento, respiro e tamanho de apresentação, sem distorcer as proporções. O SVG da FIAP recebeu a cor rosa da marca; a silhueta branca oficial do Bradesco foi aplicada em vermelho. As marcas pertencem aos respectivos titulares e identificam a trajetória profissional descrita no perfil.','','## Fontes','']
+          notes += [f'- **{m["brand"]}**: {m["source_url"]}' for m in metadata]
+          notes += ['','Detalhes de processamento e hashes dos arquivos: `sources.json`. Os cartões são armazenados neste repositório; sua exibição não depende dos sites de origem.','']
+          (assets/'SOURCES.md').write_text('\n'.join(notes))
           try:
-            url='https://commons.wikimedia.org/wiki/File:PwC_Company_Logo.svg'
-            try:
-              soup=BeautifulSoup(get(url).text,'html.parser')
-              asset=urljoin(url,soup.select_one('.fullImageLink a')['href'])
-            except Exception:
-              filename='PwC_Company_Logo.svg'; digest=hashlib.md5(filename.encode()).hexdigest()
-              asset=f'https://upload.wikimedia.org/wikipedia/commons/{digest[0]}/{digest[:2]}/{filename}'
-            save('pwc',asset)
-          except Exception as e: print('FAILED pwc',str(e))
-          urls=['https://www.grupoboticario.pt/','https://www.grupoboticario.com.br/en/grupo-boticario/','https://www.grupoboticario.com.br/sobre-o-grupo-boticario/']
-          for page_no,url in enumerate(urls):
-            try:
-              response=get(url); soup=BeautifulSoup(response.text,'html.parser')
-              print('BOTICARIO_PAGE',url,response.status_code,len(response.content))
-              (out/f'boticario-page-{page_no}.html').write_text(response.text)
-              header=soup.find('header') or soup
-              svgs=header.find_all('svg')
-              print('BOTICARIO_HEADER',str(header)[:4500])
-              for i,svg in enumerate(svgs[:12]):
-                text=str(svg).replace('viewbox=','viewBox=').replace('lineargradient','linearGradient').replace('gradientunits','gradientUnits').replace('clippath','clipPath')
-                if not svg.get('xmlns'): text=text.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"',1)
-                text=text.replace('currentColor','#346e4a')
-                try: save(f'boticario-candidate-{page_no}-{i}',url,text.encode())
-                except Exception as e: print('BAD_INLINE',i,str(e))
-              for i,img in enumerate(header.find_all('img')[:15]):
-                asset=urljoin(url,img.get('src') or img.get('data-src') or '')
-                if not asset or asset==url: continue
-                print('BOTICARIO_IMAGE',str(img))
-                try: save(f'boticario-image-{page_no}-{i}',asset)
-                except Exception as e: print('BAD_IMAGE',i,str(e))
-              if svgs: break
-            except Exception as e: print('BOTICARIO_ERROR',url,str(e))
-          save('bradesco',manifest['bradesco']['url'],(out/'bradesco.png').read_bytes())
-          (out/'manifest.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False))
-          files=sorted(out.glob('*-preview.png'))
-          montage=Image.new('RGB',(1200,((len(files)+2)//3)*240),'#0d1117'); draw=ImageDraw.Draw(montage)
-          for i,f in enumerate(files):
-            im=Image.open(f); x=(i%3)*400; y=(i//3)*240
-            draw.text((x+10,y+10),f.stem,fill='white'); montage.paste(im,(x,y+35),im)
-          montage.save(out/'preview.png')
-          print('MANIFEST',json.dumps(manifest,ensure_ascii=False))
+            font=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',32)
+            bold=ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',42)
+          except OSError: font=bold=ImageFont.load_default()
+          for theme,bg,fg in [('dark','#0d1117','#e6edf3'),('light','#ffffff','#1f2328')]:
+            canvas=Image.new('RGB',(1680,560),bg); draw=ImageDraw.Draw(canvas)
+            draw.text((32,24),'Experiência que sustenta o trabalho',font=bold,fill=fg)
+            draw.text((32,105),'Ensino, formação corporativa e mentoria',font=font,fill=fg)
+            draw.text((32,330),'Minha base em dados e negócios',font=font,fill=fg)
+            for i,name in enumerate(names):
+              x=32+(i if i<6 else i-6)*272; y=162 if i<6 else 388
+              card=Image.open(assets/(name+'.png')).resize((256,128),Image.Resampling.LANCZOS); canvas.paste(card,(x,y),card)
+            canvas.save(bundle/('preview-'+theme+'.png'))
+          print('VALIDATION: all 11 logos rendered; original README prose, stack and photos unchanged.')
+          print('ASSET_BYTES',sum(p.stat().st_size for p in assets.glob('*.png')))
       - uses: actions/upload-artifact@v4
         with:
-          name: company-logo-sources-complete
-          path: collected/
+          name: validated-company-logo-update
+          path: /tmp/logo-bundle/
           retention-days: 1
